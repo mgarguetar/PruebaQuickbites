@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "654349328745",
+    "firebase_url": "https://lenguajes-prueba-default-rtdb.firebaseio.com",
+    "project_id": "lenguajes-prueba",
+    "storage_bucket": "lenguajes-prueba.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:654349328745:android:9d628158d7748411eb1df8",
+        "android_client_info": {
+          "package_name": "com.example.prueba_firebase"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAj6ck-sacf4jKO9aPNwPBy3-skkGkM1WU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:654349328745:android:eb58d4bfc6275704eb1df8",
+        "android_client_info": {
+          "package_name": "com.example.quickbites_application_prueba"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAj6ck-sacf4jKO9aPNwPBy3-skkGkM1WU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:654349328745:android:fcf77053e8e98e7beb1df8",
+        "android_client_info": {
+          "package_name": "com.example.quickbites_prueba"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAj6ck-sacf4jKO9aPNwPBy3-skkGkM1WU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
