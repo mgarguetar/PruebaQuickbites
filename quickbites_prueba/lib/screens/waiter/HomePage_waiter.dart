@@ -1,10 +1,11 @@
+
+// Modificación para HomePageWaiter.dart - Actualizar el ListView.builder
 import 'package:flutter/material.dart';
 import 'package:quickbites_prueba/firebase_service.dart';
 import 'package:quickbites_prueba/screens/waiter/SeleccionMesaScreen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:quickbites_prueba/screens/waiter/menu_waiter.dart';
-
 
 class HomePageWaiter extends StatelessWidget {
   const HomePageWaiter({Key? key}) : super(key: key);
@@ -64,7 +65,16 @@ class HomePageWaiter extends StatelessWidget {
                                 subtitle: Text('Inicio: $horaFormateada'),
                                 trailing: Text(order['total'].toString()),
                                 onTap: () {
-                                  // acción al tocar la orden
+                                  // Navegar a la pantalla de menú al tocar la orden
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => MenuScreen(
+                                        mesaId: order['tableId'] ?? '', // Asumiendo que tienes este campo
+                                        mesaNumber: order['mesa'].toString(),
+                                      ),
+                                    ),
+                                  );
                                 },
                               ),
                             );
@@ -95,7 +105,6 @@ class HomePageWaiter extends StatelessWidget {
                                 ),
                               );
                             },
-
                           ),
                         ),
                       );
