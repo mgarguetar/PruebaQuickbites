@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:quickbites_prueba/screens/waiter/HomePage_waiter.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:quickbites_prueba/screens/waiter/SeleccionMesaScreen.dart';
 import 'firebase_options.dart';
 import 'package:quickbites_prueba/screens/admin/Additem.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,7 +20,7 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      home: AddItemScreen(), //HomePageWaiter(),
+      home: /*AddItemScreen(),*/ HomePageWaiter(),
     );
   }
 }

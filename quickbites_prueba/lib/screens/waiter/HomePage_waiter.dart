@@ -1,11 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:quickbites_prueba/firebase_service.dart';
+import 'package:quickbites_prueba/screens/waiter/SeleccionMesaScreen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 
 class HomePageWaiter extends StatelessWidget {
-  
   const HomePageWaiter({Key? key}) : super(key: key);
 
   @override
@@ -29,10 +29,6 @@ class HomePageWaiter extends StatelessWidget {
 
           final orders = snapshot.data ?? [];
 
-          if (orders.isEmpty) {
-            return const Center(child: Text('No hay órdenes disponibles.'));
-          }
-        
           return Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -47,43 +43,86 @@ class HomePageWaiter extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Expanded(
-                  child: ListView.builder(
-                    itemCount: orders.length,
-                    itemBuilder: (context, index) {
-                      final order = orders[index];
-                      final Timestamp createdAt = order['createdAt'];
-                      final String horaFormateada = DateFormat.jm().format(createdAt.toDate());
-                      return Card(
-                        elevation: 3,
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.orange,
-                          child: Text(order['mesa'].toString()),
+                  child: orders.isEmpty
+                      ? const Center(child: Text('No hay órdenes disponibles.'))
+                      : ListView.builder(
+                          itemCount: orders.length,
+                          itemBuilder: (context, index) {
+                            final order = orders[index];
+                            final Timestamp createdAt = order['createdAt'];
+                            final String horaFormateada = DateFormat.jm().format(createdAt.toDate());
+                            return Card(
+                              elevation: 3,
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: Colors.orange,
+                                  child: Text(order['mesa'].toString()),
+                                ),
+                                title: Text('Mesa No. ${order['mesa'].toString()}'),
+                                subtitle: Text('Inicio: $horaFormateada'),
+                                trailing: Text(order['total'].toString()),
+                                onTap: () {
+                                  // acción al tocar la orden
+                                },
+                              ),
+                            );
+                          },
                         ),
-                        title: Text('Mesa No. ${order['mesa'].toString()}'),
-                        subtitle: Text('Inicio: $horaFormateada'),
-                        trailing: Text(order['total'].toString()),
-                        onTap: () {
-                          // acción al tocar la orden
-                        },
-                      ),
-
-                      );
-                    },
-                  ),
                 ),
-                const SizedBox(height: 10),
-                Center(
-                  child: ElevatedButton(
+                const SizedBox(height: 16),
+                // Botón para seleccionar mesa
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
                     onPressed: () {
-                      // Acción para seleccionar mesa
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SeleccionMesaScreen(
+                            onMesaSeleccionada: (mesaId, mesaNumber) {
+                              // Aquí manejas la mesa seleccionada
+                              Navigator.pop(context); // Cierra la pantalla de selección
+                              
+                              // Muestra un snackbar con la selección
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Mesa $mesaNumber seleccionada'),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                              
+                              // Aquí podrías navegar a la pantalla de tomar orden:
+                              // Navigator.push(
+                              //   context,
+                              //   MaterialPageRoute(
+                              //     builder: (context) => TomarOrdenScreen(
+                              //       mesaId: mesaId,
+                              //       mesaNumber: mesaNumber,
+                              //     ),
+                              //   ),
+                              // );
+                            },
+                          ),
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                    child: const Text('Seleccionar Mesa'),
+                    icon: const Icon(Icons.table_restaurant, color: Colors.white),
+                    label: const Text(
+                      'SELECCIONAR MESA',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ],
