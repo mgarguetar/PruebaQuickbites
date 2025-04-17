@@ -3,6 +3,7 @@ import 'package:quickbites_prueba/firebase_service.dart';
 import 'package:quickbites_prueba/screens/waiter/SeleccionMesaScreen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:quickbites_prueba/screens/waiter/menu_waiter.dart';
 
 
 class HomePageWaiter extends StatelessWidget {
@@ -81,28 +82,20 @@ class HomePageWaiter extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (context) => SeleccionMesaScreen(
                             onMesaSeleccionada: (mesaId, mesaNumber) {
-                              // Aquí manejas la mesa seleccionada
-                              Navigator.pop(context); // Cierra la pantalla de selección
-                              
-                              // Muestra un snackbar con la selección
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Mesa $mesaNumber seleccionada'),
-                                  duration: const Duration(seconds: 2),
+                              Navigator.pop(context); // Cierra la pantalla de selección de mesa
+
+                              // Ahora redirige al menú
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => MenuScreen(
+                                    mesaId: mesaId,
+                                    mesaNumber: mesaNumber,
+                                  ),
                                 ),
                               );
-                              
-                              // Aquí podrías navegar a la pantalla de tomar orden:
-                              // Navigator.push(
-                              //   context,
-                              //   MaterialPageRoute(
-                              //     builder: (context) => TomarOrdenScreen(
-                              //       mesaId: mesaId,
-                              //       mesaNumber: mesaNumber,
-                              //     ),
-                              //   ),
-                              // );
                             },
+
                           ),
                         ),
                       );
