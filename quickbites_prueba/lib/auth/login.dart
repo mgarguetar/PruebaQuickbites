@@ -1,11 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:quickbites_prueba/screens/kitchen/HomePage_kitchen.dart'; 
 import 'package:quickbites_prueba/screens/waiter/HomePage_waiter.dart';
 import 'package:quickbites_prueba/screens/admin/Additem.dart';
 import 'register.dart';
-
-
 
 class LoginPage extends StatefulWidget {
   @override
@@ -18,8 +17,10 @@ class _LoginPageState extends State<LoginPage> {
   final _formkey = GlobalKey<FormState>();
   final TextEditingController emailController = new TextEditingController();
   final TextEditingController passwordController = new TextEditingController();
+  String errorMessage = ''; // Para mostrar mensajes de error
 
   final _auth = FirebaseAuth.instance;
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -72,7 +73,7 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           validator: (value) {
-                            if (value!.length == 0) {
+                            if (value!.isEmpty) {
                               return "Email cannot be empty";
                             }
                             if (!RegExp(
@@ -133,8 +134,23 @@ class _LoginPageState extends State<LoginPage> {
                           onSaved: (value) {
                             passwordController.text = value!;
                           },
-                          keyboardType: TextInputType.emailAddress,
+                          keyboardType: TextInputType.visiblePassword,
                         ),
+                        
+                        SizedBox(height: 10),
+                        
+                        // Mensaje de error
+                        if (errorMessage.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Text(
+                              errorMessage,
+                              style: TextStyle(
+                                color: Colors.red[100],
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                        
                         SizedBox(
                           height: 20,
@@ -148,6 +164,7 @@ class _LoginPageState extends State<LoginPage> {
                           onPressed: () {
                             setState(() {
                               visible = true;
+                              errorMessage = '';
                             });
                             signIn(
                                 emailController.text, passwordController.text);
@@ -258,53 +275,106 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void route() {
-    User? user = FirebaseAuth.instance.currentUser;
-    var kk = FirebaseFirestore.instance
-            .collection('users')
-            .doc(user!.uid)
-            .get()
-            .then((DocumentSnapshot documentSnapshot) {
+  // Función route mejorada con manejo de errores y async/await
+  Future<void> route() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() {
+          errorMessage = 'No user found';
+          visible = false;
+        });
+        return;
+      }
+      
+      DocumentSnapshot documentSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      
+      setState(() {
+        visible = false; // Ocultar el indicador de carga
+      });
+      
       if (documentSnapshot.exists) {
-        if (documentSnapshot.get('rool') == "Waiter") {
-           Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>  HomePageWaiter(),
-          ),
-        );
-        }else{
+        String? role = documentSnapshot.get('rool') as String?;
+        
+        if (role == "Waiter") {
           Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>  AddItemScreen(),
-          ),
-        );
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomePageWaiter(),
+            ),
+          );
+        } else if (role == "Kitchen") {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomePageKitchen(),
+            ),
+          );
+        } else if (role == "Admin") {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AddItemScreen(),
+            ),
+          );
+        } else {
+          setState(() {
+            errorMessage = 'Unknown role: $role';
+          });
         }
       } else {
-        print('Document does not exist on the database');
+        // Si el documento no existe, asumimos que es un administrador
+        // Esto mantiene la lógica original donde redirigía a AddItemScreen si el doc no existía
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AddItemScreen(),
+          ),
+        );
       }
-    });
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Error fetching user data: $e';
+        visible = false;
+      });
+      print('Error in route(): $e');
+    }
   }
 
-  void signIn(String email, String password) async {
+  Future<void> signIn(String email, String password) async {
     if (_formkey.currentState!.validate()) {
       try {
-        UserCredential userCredential =
-            await FirebaseAuth.instance.signInWithEmailAndPassword(
+        UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: email,
           password: password,
         );
-        route();
+        await route(); // Esperar a que route() termine
       } on FirebaseAuthException catch (e) {
-        if (e.code == 'user-not-found') {
-          print('No user found for that email.');
-        } else if (e.code == 'wrong-password') {
-          print('Wrong password provided for that user.');
-        }
+        setState(() {
+          visible = false; // Ocultar el indicador de carga
+          if (e.code == 'user-not-found') {
+            errorMessage = 'No user found for that email.';
+          } else if (e.code == 'wrong-password') {
+            errorMessage = 'Wrong password provided for that user.';
+          } else {
+            errorMessage = 'Error: ${e.message}';
+          }
+        });
+        print('Error de autenticación: ${e.message}');
+      } catch (e) {
+        setState(() {
+          visible = false;
+          errorMessage = 'An unexpected error occurred: $e';
+        });
+        print('Error inesperado: $e');
       }
+    } else {
+      setState(() {
+        visible = false; // Ocultar el indicador de carga si la validación falla
+      });
     }
   }
 }
-
-

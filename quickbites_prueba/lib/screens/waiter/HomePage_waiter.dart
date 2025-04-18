@@ -8,16 +8,16 @@ import 'package:quickbites_prueba/screens/waiter/menu_waiter.dart';
 class HomePageWaiter extends StatelessWidget {
   const HomePageWaiter({Key? key}) : super(key: key);
 
-  // Función para obtener todas las mesas ocupadas actualmente
-  Stream<List<Map<String, dynamic>>> getOccupiedTablesStream() {
+  // Implementación directa de getOrdersStream para asegurar que obtenemos todas las órdenes activas
+  Stream<List<Map<String, dynamic>>> getOrdersStream() {
     return FirebaseFirestore.instance
-        .collection('tables')
-        .where('status', isEqualTo: 'occupied')
+        .collection('orders')
+        .where('status', isEqualTo: 'active') // Asumiendo que las órdenes activas tienen este estado
         .snapshots()
         .map((snapshot) {
           return snapshot.docs.map((doc) {
             final data = doc.data();
-            data['id'] = doc.id;
+            data['id'] = doc.id; // Incluir el ID del documento
             return data;
           }).toList();
         });
@@ -32,7 +32,7 @@ class HomePageWaiter extends StatelessWidget {
         backgroundColor: Colors.orange,
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: getOccupiedTablesStream(),
+        stream: getOrdersStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -42,10 +42,10 @@ class HomePageWaiter extends StatelessWidget {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
 
-          final occupiedTables = snapshot.data ?? [];
+          final orders = snapshot.data ?? [];
           
-          // Ordenar las mesas por número
-          occupiedTables.sort((a, b) => (a['number'] as num).compareTo(b['number'] as num));
+          // Ordenar las órdenes por número de mesa para mejor visualización
+          orders.sort((a, b) => (a['mesa'] as num).compareTo(b['mesa'] as num));
 
           return Padding(
             padding: const EdgeInsets.all(16.0),
@@ -56,14 +56,14 @@ class HomePageWaiter extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Mesas Ocupadas',
+                      'Tus Órdenes',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
-                      'Total: ${occupiedTables.length} mesas',
+                      'Total: ${orders.length} mesas',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -74,18 +74,19 @@ class HomePageWaiter extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Expanded(
-                  child: occupiedTables.isEmpty
-                      ? const Center(child: Text('No hay mesas ocupadas en este momento.'))
+                  child: orders.isEmpty
+                      ? const Center(child: Text('No hay órdenes disponibles.'))
                       : ListView.builder(
-                          itemCount: occupiedTables.length,
+                          itemCount: orders.length,
                           itemBuilder: (context, index) {
-                            final table = occupiedTables[index];
-                            final String tableNumber = table['number'].toString();
-                            final Timestamp? startTime = table['occupiedSince'] as Timestamp?;
-                            final String startTimeFormatted = startTime != null
-                                ? DateFormat.jm().format(startTime.toDate())
-                                : 'N/A';
-                                
+                            final order = orders[index];
+                            final Timestamp createdAt = order['createdAt'] ?? Timestamp.now();
+                            final String horaFormateada = DateFormat.jm().format(createdAt.toDate());
+                            
+                            // Obtener el total formateado como moneda
+                            final double total = order['total'] is num ? (order['total'] as num).toDouble() : 0.0;
+                            final String totalFormateado = NumberFormat.currency(locale: 'es_MX', symbol: '\$').format(total);
+                            
                             return Card(
                               elevation: 3,
                               margin: const EdgeInsets.symmetric(vertical: 8),
@@ -96,57 +97,70 @@ class HomePageWaiter extends StatelessWidget {
                               child: ListTile(
                                 leading: CircleAvatar(
                                   backgroundColor: Colors.orange,
-                                  child: Text(tableNumber),
+                                  child: Text(order['mesa'].toString()),
                                 ),
                                 title: Text(
-                                  'Mesa No. $tableNumber',
+                                  'Mesa No. ${order['mesa'].toString()}',
                                   style: const TextStyle(fontWeight: FontWeight.bold),
                                 ),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Ocupada desde: $startTimeFormatted'),
-                                    if (table['currentOrder'] != null)
-                                      Text('Orden en progreso: Sí'),
+                                    Text('Inicio: $horaFormateada'),
+                                    if (order['items'] != null)
+                                      Text('Items: ${(order['items'] as List).length}'),
                                   ],
                                 ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
+                                trailing: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.red.shade100,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: const Text(
-                                        'OCUPADA',
-                                        style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                                    Text(
+                                      totalFormateado,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
-                                    const Icon(Icons.arrow_forward_ios, size: 16),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.shade100,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: const Text(
+                                            'Activa',
+                                            style: TextStyle(color: Colors.green, fontSize: 12),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ],
                                 ),
                                 onTap: () {
-                                  // Navegar a la pantalla de menú al tocar la mesa ocupada
+                                  // Navegar a la pantalla de menú al tocar la orden
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => MenuScreen(
-                                        mesaId: table['id'],
-                                        mesaNumber: tableNumber,
+                                        mesaId: order['tableId'] ?? '',
+                                        mesaNumber: order['mesa'].toString(),
                                       ),
                                     ),
                                   );
                                 },
+                                isThreeLine: true,
                               ),
                             );
                           },
                         ),
                 ),
                 const SizedBox(height: 16),
-                // Botón para seleccionar mesa nueva
+                // Botón para seleccionar mesa
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -156,24 +170,18 @@ class HomePageWaiter extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (context) => SeleccionMesaScreen(
                             onMesaSeleccionada: (mesaId, mesaNumber) {
-                              // Primero, actualizar el estado de la mesa a "occupied"
-                              FirebaseFirestore.instance.collection('tables').doc(mesaId).update({
-                                'status': 'occupied',
-                                'occupiedSince': FieldValue.serverTimestamp(),
-                              }).then((_) {
-                                Navigator.pop(context); // Cierra la pantalla de selección de mesa
+                              Navigator.pop(context); // Cierra la pantalla de selección de mesa
 
-                                // Ahora redirige al menú
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => MenuScreen(
-                                      mesaId: mesaId,
-                                      mesaNumber: mesaNumber,
-                                    ),
+                              // Ahora redirige al menú
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => MenuScreen(
+                                    mesaId: mesaId,
+                                    mesaNumber: mesaNumber,
                                   ),
-                                );
-                              });
+                                ),
+                              );
                             },
                           ),
                         ),
@@ -188,7 +196,7 @@ class HomePageWaiter extends StatelessWidget {
                     ),
                     icon: const Icon(Icons.table_restaurant, color: Colors.white),
                     label: const Text(
-                      'SELECCIONAR MESA NUEVA',
+                      'SELECCIONAR MESA',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
