@@ -8,16 +8,16 @@ import 'package:quickbites_prueba/screens/waiter/menu_waiter.dart';
 class HomePageWaiter extends StatelessWidget {
   const HomePageWaiter({Key? key}) : super(key: key);
 
-  // Implementación directa de getOrdersStream para asegurar que obtenemos todas las órdenes activas
-  Stream<List<Map<String, dynamic>>> getOrdersStream() {
+  // Stream para obtener mesas ocupadas
+  Stream<List<Map<String, dynamic>>> getOccupiedTablesStream() {
     return FirebaseFirestore.instance
-        .collection('orders')
-        .where('status', isEqualTo: 'active') // Asumiendo que las órdenes activas tienen este estado
+        .collection('tables')
+        .where('status', isEqualTo: 'occupied')
         .snapshots()
         .map((snapshot) {
           return snapshot.docs.map((doc) {
             final data = doc.data();
-            data['id'] = doc.id; // Incluir el ID del documento
+            data['id'] = doc.id;
             return data;
           }).toList();
         });
@@ -32,7 +32,7 @@ class HomePageWaiter extends StatelessWidget {
         backgroundColor: Colors.orange,
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: getOrdersStream(),
+        stream: getOccupiedTablesStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -42,28 +42,29 @@ class HomePageWaiter extends StatelessWidget {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
 
-          final orders = snapshot.data ?? [];
+          final occupiedTables = snapshot.data ?? [];
           
-          // Ordenar las órdenes por número de mesa para mejor visualización
-          orders.sort((a, b) => (a['mesa'] as num).compareTo(b['mesa'] as num));
+          // Ordenar las mesas por número
+          occupiedTables.sort((a, b) => (a['number'] as num).compareTo(b['number'] as num));
 
           return Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Encabezado de mesas ocupadas
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Tus Órdenes',
+                      'Mesas Ocupadas',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
-                      'Total: ${orders.length} mesas',
+                      'Total: ${occupiedTables.length} mesas',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -73,94 +74,118 @@ class HomePageWaiter extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
+                
+                // Lista de mesas ocupadas
                 Expanded(
-                  child: orders.isEmpty
-                      ? const Center(child: Text('No hay órdenes disponibles.'))
+                  child: occupiedTables.isEmpty
+                      ? const Center(child: Text('No hay mesas ocupadas actualmente.'))
                       : ListView.builder(
-                          itemCount: orders.length,
+                          itemCount: occupiedTables.length,
                           itemBuilder: (context, index) {
-                            final order = orders[index];
-                            final Timestamp createdAt = order['createdAt'] ?? Timestamp.now();
-                            final String horaFormateada = DateFormat.jm().format(createdAt.toDate());
-                            
-                            // Obtener el total formateado como moneda
-                            final double total = order['total'] is num ? (order['total'] as num).toDouble() : 0.0;
-                            final String totalFormateado = NumberFormat.currency(locale: 'es_MX', symbol: '\$').format(total);
+                            final table = occupiedTables[index];
+                            // Obtener la hora desde timestamp si existe
+                            String horaOcupada = "Ocupada";
+                            if (table['occupiedAt'] != null) {
+                              final Timestamp occupiedTime = table['occupiedAt'];
+                              horaOcupada = "Ocupada desde: ${DateFormat.jm().format(occupiedTime.toDate())}";
+                            }
                             
                             return Card(
-                              elevation: 3,
-                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              margin: const EdgeInsets.only(bottom: 12),
+                              elevation: 2,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                side: BorderSide(color: Colors.orange.shade200),
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(color: Colors.orange.shade200, width: 1),
                               ),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: Colors.orange,
-                                  child: Text(order['mesa'].toString()),
-                                ),
-                                title: Text(
-                                  'Mesa No. ${order['mesa'].toString()}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Inicio: $horaFormateada'),
-                                    if (order['items'] != null)
-                                      Text('Items: ${(order['items'] as List).length}'),
-                                  ],
-                                ),
-                                trailing: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      totalFormateado,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: Colors.green.shade100,
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          child: const Text(
-                                            'Activa',
-                                            style: TextStyle(color: Colors.green, fontSize: 12),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
+                              child: InkWell(
                                 onTap: () {
-                                  // Navegar a la pantalla de menú al tocar la orden
+                                  // Navegar a la pantalla de menú
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => MenuScreen(
-                                        mesaId: order['tableId'] ?? '',
-                                        mesaNumber: order['mesa'].toString(),
+                                        mesaId: table['id'],
+                                        mesaNumber: table['number'].toString(),
                                       ),
                                     ),
                                   );
                                 },
-                                isThreeLine: true,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Row(
+                                    children: [
+                                      // Círculo con número de mesa
+                                      CircleAvatar(
+                                        radius: 25,
+                                        backgroundColor: Colors.orange,
+                                        child: Text(
+                                          table['number'].toString(),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      // Información de la mesa
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Mesa No. ${table['number'].toString()}',
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            Text(
+                                              horaOcupada,
+                                              style: TextStyle(
+                                                color: Colors.grey[600],
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      // Etiqueta de OCUPADA y flecha
+                                      Column(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: Colors.red[100],
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: const Text(
+                                              'OCUPADA',
+                                              style: TextStyle(
+                                                color: Colors.red,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Icon(
+                                        Icons.chevron_right,
+                                        color: Colors.grey,
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             );
                           },
                         ),
                 ),
+                
                 const SizedBox(height: 16),
-                // Botón para seleccionar mesa
+                // Botón para seleccionar nueva mesa
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -170,9 +195,8 @@ class HomePageWaiter extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (context) => SeleccionMesaScreen(
                             onMesaSeleccionada: (mesaId, mesaNumber) {
-                              Navigator.pop(context); // Cierra la pantalla de selección de mesa
+                              Navigator.pop(context);
 
-                              // Ahora redirige al menú
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -196,7 +220,7 @@ class HomePageWaiter extends StatelessWidget {
                     ),
                     icon: const Icon(Icons.table_restaurant, color: Colors.white),
                     label: const Text(
-                      'SELECCIONAR MESA',
+                      'SELECCIONAR MESA NUEVA',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
