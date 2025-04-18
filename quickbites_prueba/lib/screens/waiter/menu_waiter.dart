@@ -349,7 +349,7 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
       case 'Pasta':
         return Icons.restaurant;
       case 'Bebidas':
-        return Icons.fastfood;
+        return Icons.coffee_outlined;
       default:
         return Icons.restaurant_menu;
     }
