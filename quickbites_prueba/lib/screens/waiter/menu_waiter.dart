@@ -26,7 +26,7 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
     {'nombre': 'Postres', 'icono': Icons.icecream, 'coleccion': 'Postres'},
     {'nombre': 'Pizza', 'icono': Icons.local_pizza, 'coleccion': 'Pizza'},
     {'nombre': 'Pasta', 'icono': Icons.restaurant, 'coleccion': 'Pasta'},
-    {'nombre': 'Entradas', 'icono': Icons.coffee_outlined, 'coleccion': 'Bebidas'},
+    {'nombre': 'Bebidas', 'icono': Icons.coffee_outlined, 'coleccion': 'Bebidas'},
   ];
 
   @override
@@ -342,13 +342,13 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
 
   IconData _getIconForCategory(String categoria) {
     switch (categoria) {
-      case 'postres':
+      case 'Postres':
         return Icons.icecream;
-      case 'pizza':
+      case 'Pizza':
         return Icons.local_pizza;
-      case 'pasta':
+      case 'Pasta':
         return Icons.restaurant;
-      case 'entradas':
+      case 'Bebidas':
         return Icons.fastfood;
       default:
         return Icons.restaurant_menu;
