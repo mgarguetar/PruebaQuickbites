@@ -21,6 +21,7 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: Register(), // You can switch to AddItemScreen() or HomePageWaiter() as needed
     );
   }
